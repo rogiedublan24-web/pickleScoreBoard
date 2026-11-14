@@ -49,7 +49,8 @@ body {
   padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
            max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  /* topbar, score call, teams (grows), actions, standings */
+  grid-template-rows: auto auto 1fr auto auto;
   gap: var(--gap);
 }
 
@@ -326,6 +327,85 @@ body {
 
 :focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 
+/* ---------- Standings (always visible) ---------- */
+.standings {
+  padding: 0.5rem 0.75rem 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.standings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+.standings-head h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.mini-btn {
+  appearance: none;
+  min-height: 32px;
+  padding: 0.2rem 0.75rem;
+  border: 1px solid #7d3f38;
+  border-radius: 8px;
+  background: transparent;
+  color: #f3b1a8;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.mini-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.table-wrap {
+  max-height: 8.5rem;          /* about 4 rows; scrolls inside if there are more teams */
+  overflow-y: auto;
+  border-radius: 8px;
+}
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.standings-table th {
+  position: sticky;
+  top: 0;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.standings-table td {
+  padding: 0.3rem 0.5rem;
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+  text-align: center;
+}
+.standings-table .left { text-align: left; }
+.standings-table td.name {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.standings-table tr.leader td { color: var(--team-a); }
+.standings-empty { margin: 0; font-size: 0.85rem; color: var(--muted); }
+
 /* ---------- Modals ---------- */
 .overlay {
   position: fixed;
@@ -423,12 +503,14 @@ body {
   .team { padding: 1rem; }
 }
 @media (orientation: landscape) and (max-height: 520px) {
-  .app { grid-template-rows: auto 1fr auto; max-width: 900px; }
+  /* score call is hidden here, so: topbar, teams, actions, standings */
+  .app { grid-template-rows: auto 1fr auto auto; max-width: 900px; }
   .call { display: none; }
   .score { font-size: clamp(4rem, 24vh, 7rem); }
   .point-btn { min-height: 60px; }
   .btn.big { min-height: 64px; }
   .actions { grid-template-columns: 1.4fr 1fr; align-items: stretch; }
+  .table-wrap { max-height: 5.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

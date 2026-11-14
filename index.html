@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1a17">
+  <title>Pickleball Scoreboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1><span class="ball" aria-hidden="true"></span>Pickleball</h1>
+      <div class="segmented" role="group" aria-label="Game mode">
+        <button type="button" class="seg" data-mode="doubles" aria-pressed="true">Doubles</button>
+        <button type="button" class="seg" data-mode="singles" aria-pressed="false">Singles</button>
+      </div>
+    </header>
+
+    <section class="call" aria-live="polite">
+      <span class="call-label" id="call-label">Score call</span>
+      <span class="call-value" id="score-call">0-0-2</span>
+      <span class="call-hint" id="call-hint"></span>
+    </section>
+
+    <main class="teams" id="teams">
+      <article class="team" data-team="0">
+        <label class="name-label" for="name-0">Team A</label>
+        <div class="name-field">
+          <input class="team-name" id="name-0" type="text" maxlength="16"
+                 value="" placeholder="Enter team name" aria-label="Team A name"
+                 autocomplete="off" spellcheck="false" enterkeyhint="done">
+          <svg class="edit-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+          </svg>
+        </div>
+        <button type="button" class="serve-chip" data-team="0">Receiving</button>
+        <div class="score" id="score-0" aria-live="polite">0</div>
+        <button type="button" class="point-btn" data-team="0">+ Point</button>
+      </article>
+
+      <article class="team" data-team="1">
+        <label class="name-label" for="name-1">Team B</label>
+        <div class="name-field">
+          <input class="team-name" id="name-1" type="text" maxlength="16"
+                 value="" placeholder="Enter team name" aria-label="Team B name"
+                 autocomplete="off" spellcheck="false" enterkeyhint="done">
+          <svg class="edit-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+          </svg>
+        </div>
+        <button type="button" class="serve-chip" data-team="1">Receiving</button>
+        <div class="score" id="score-1" aria-live="polite">0</div>
+        <button type="button" class="point-btn" data-team="1">+ Point</button>
+      </article>
+    </main>
+
+    <section class="actions">
+      <button type="button" class="btn big primary" id="side-out">
+        <span class="btn-title" id="side-out-title">Side Out</span>
+        <span class="btn-sub" id="side-out-sub"></span>
+      </button>
+      <div class="row">
+        <button type="button" class="btn" id="undo">Undo</button>
+        <button type="button" class="btn danger" id="reset">Reset Game</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Win banner -->
+  <div class="overlay" id="win-modal" hidden>
+    <div class="modal win" role="dialog" aria-modal="true" aria-labelledby="win-title">
+      <div class="win-label">Game over</div>
+      <h2 id="win-title">Team A wins!</h2>
+      <p class="win-score" id="win-score">11 – 7</p>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="win-undo">Undo last point</button>
+        <button type="button" class="btn primary" id="win-new">New game</button>
+      </div>
+      <button type="button" class="link-btn" id="win-close">View scoreboard</button>
+    </div>
+  </div>
+
+  <!-- Confirm dialog -->
+  <div class="overlay" id="confirm-modal" hidden>
+    <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-msg">
+      <h2 id="confirm-title">Are you sure?</h2>
+      <p id="confirm-msg"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="confirm-cancel">Cancel</button>
+        <button type="button" class="btn danger" id="confirm-ok">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

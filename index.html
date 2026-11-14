@@ -28,10 +28,10 @@
 
     <main class="teams" id="teams">
       <article class="team" data-team="0">
-        <label class="name-label" for="name-0">Team A</label>
+        <label class="name-label" for="name-0">Left team</label>
         <div class="name-field">
           <input class="team-name" id="name-0" type="text" maxlength="16"
-                 value="" placeholder="Enter team name" aria-label="Team A name"
+                 value="" placeholder="Enter team name" aria-label="Left team name"
                  autocomplete="off" spellcheck="false" enterkeyhint="done">
           <svg class="edit-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
@@ -43,10 +43,10 @@
       </article>
 
       <article class="team" data-team="1">
-        <label class="name-label" for="name-1">Team B</label>
+        <label class="name-label" for="name-1">Right team</label>
         <div class="name-field">
           <input class="team-name" id="name-1" type="text" maxlength="16"
-                 value="" placeholder="Enter team name" aria-label="Team B name"
+                 value="" placeholder="Enter team name" aria-label="Right team name"
                  autocomplete="off" spellcheck="false" enterkeyhint="done">
           <svg class="edit-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
@@ -68,13 +68,36 @@
         <button type="button" class="btn danger" id="reset">Reset Game</button>
       </div>
     </section>
+
+    <!-- Standings: always visible -->
+    <section class="standings" aria-label="Standings">
+      <div class="standings-head">
+        <h2>Standings</h2>
+        <button type="button" class="mini-btn" id="standings-clear">Clear</button>
+      </div>
+      <div class="table-wrap" id="standings-wrap">
+        <table class="standings-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="left">Team</th>
+              <th>W</th>
+              <th>L</th>
+              <th>+/-</th>
+            </tr>
+          </thead>
+          <tbody id="standings-body"></tbody>
+        </table>
+      </div>
+      <p class="standings-empty" id="standings-empty">No finished games yet.</p>
+    </section>
   </div>
 
   <!-- Win banner -->
   <div class="overlay" id="win-modal" hidden>
     <div class="modal win" role="dialog" aria-modal="true" aria-labelledby="win-title">
       <div class="win-label">Game over</div>
-      <h2 id="win-title">Team A wins!</h2>
+      <h2 id="win-title">Winner</h2>
       <p class="win-score" id="win-score">11 – 7</p>
       <div class="modal-actions">
         <button type="button" class="btn" id="win-undo">Undo last point</button>

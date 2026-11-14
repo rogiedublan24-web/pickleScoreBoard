@@ -3,13 +3,14 @@
    Sections:
      1. Config
      2. Rules            (pure functions: scoring + server logic)
-     3. App state        (current game, history for undo, names)
+     3. App state        (current game, history for undo, names, results)
      4. DOM references
      5. Render           (includes auto-fit for team names)
-     6. Actions          (add point, side out, undo, reset, mode)
-     7. Dialogs & toast
-     8. Storage
-     9. Events & init
+     6. Standings
+     7. Actions          (add point, side out, undo, reset, mode)
+     8. Dialogs & toast
+     9. Storage
+    10. Events & init
    ========================================================== */
 (() => {
   'use strict';
@@ -17,18 +18,18 @@
   /* ---------- 1. Config ---------- */
   const CONFIG = {
     winScore: 11,            // points needed to win
-    winBy: 2,                // required lead
-    callServerFirst: true,   // true: call "server-receiver-#" (official). false: "TeamA-TeamB-#"
-    defaultNames: ['Team A', 'Team B'], // shown in messages while a name box is still empty
+    winBy: 1,                // 1 = game ends exactly at 11. Use 2 for the official win-by-2 rule.
+    callServerFirst: true,   // true: call "server-receiver-#" (official). false: "Left-Right-#"
+    defaultNames: ['Left team', 'Right team'], // shown in messages while a name box is still empty
     minNameFont: 10,         // smallest font size (px) the team name may shrink to
     maxHistory: 300,
-    storageKey: 'pickleball-scoreboard-v2',
+    storageKey: 'pickleball-scoreboard-v3',    // change this to wipe everything saved in the browser
   };
 
   /* ---------- 2. Rules (pure — no DOM here) ----------
      A game state looks like:
        { mode: 'doubles' | 'singles',
-         scores: [teamA, teamB],
+         scores: [left, right],
          serving: 0 | 1,          // index of the serving team
          server: 1 | 2,           // doubles only: which partner is serving
          winner: null | 0 | 1 }
@@ -117,18 +118,24 @@
     names: ['', ''],      // what the user typed (empty until they type something)
     state: newGame('doubles'),
     history: [],          // snapshots of previous game states (for Undo)
+    results: [],          // finished games: { names: [a, b], scores: [a, b], winner: 0 | 1 }
     winDismissed: false,  // user closed the win banner to view the board
   };
   let lastRenderedScores = [0, 0];
 
-  // Names used in messages: the typed name, or "Team A" / "Team B" while the box is empty.
+  // Names used in messages: the typed name, or "Left team" / "Right team" while the box is empty.
   const displayNames = () => app.names.map((n, i) => n.trim() || CONFIG.defaultNames[i]);
 
   // Every change goes through here so Undo always works.
   function commit(next) {
+    const wasOver = app.state.winner !== null;
     app.history.push(cloneState(app.state));
     if (app.history.length > CONFIG.maxHistory) app.history.shift();
-    if (next.winner !== null && app.state.winner === null) app.winDismissed = false;
+    if (next.winner !== null && !wasOver) {
+      app.winDismissed = false;
+      // Game just ended: record the result for the standings.
+      app.results.push({ names: displayNames(), scores: [...next.scores], winner: next.winner });
+    }
     app.state = next;
     buzz();
     render();
@@ -153,6 +160,10 @@
     sideOutSub: $('side-out-sub'),
     undo: $('undo'),
     reset: $('reset'),
+    standingsWrap: $('standings-wrap'),
+    standingsBody: $('standings-body'),
+    standingsEmpty: $('standings-empty'),
+    standingsClear: $('standings-clear'),
     winModal: $('win-modal'),
     winTitle: $('win-title'),
     winScore: $('win-score'),
@@ -263,6 +274,9 @@
     // Undo
     els.undo.disabled = app.history.length === 0;
 
+    // Standings panel (always on screen)
+    renderStandings();
+
     // Win banner
     const showWin = s.winner !== null && !app.winDismissed;
     els.winModal.hidden = !showWin;
@@ -272,7 +286,67 @@
     }
   }
 
-  /* ---------- 6. Actions ---------- */
+  /* ---------- 6. Standings ----------
+     Built from app.results. Teams are matched by name (case-insensitive).
+     Sorted by wins, then point difference, then name. */
+  function computeStandings() {
+    const table = new Map();
+    const entry = (name) => {
+      const key = name.trim().toLowerCase();
+      if (!table.has(key)) table.set(key, { name, w: 0, l: 0, pf: 0, pa: 0 });
+      return table.get(key);
+    };
+
+    app.results.forEach((r) => {
+      [0, 1].forEach((i) => {
+        const t = entry(r.names[i]);
+        t.pf += r.scores[i];
+        t.pa += r.scores[other(i)];
+        if (r.winner === i) t.w += 1; else t.l += 1;
+      });
+    });
+
+    return [...table.values()].sort((a, b) =>
+      (b.w - a.w) || ((b.pf - b.pa) - (a.pf - a.pa)) || a.name.localeCompare(b.name));
+  }
+
+  function renderStandings() {
+    const rows = computeStandings();
+    els.standingsBody.textContent = '';
+
+    rows.forEach((t, i) => {
+      const diff = t.pf - t.pa;
+      const cells = [String(i + 1), t.name, String(t.w), String(t.l), `${diff > 0 ? '+' : ''}${diff}`];
+      const tr = document.createElement('tr');
+      if (i === 0 && t.w > 0) tr.className = 'leader';
+      cells.forEach((text, c) => {
+        const td = document.createElement('td');
+        td.textContent = text;               // textContent: names typed by the user are never treated as HTML
+        if (c === 1) td.className = 'left name';
+        tr.appendChild(td);
+      });
+      els.standingsBody.appendChild(tr);
+    });
+
+    const empty = rows.length === 0;
+    els.standingsWrap.hidden = empty;
+    els.standingsEmpty.hidden = !empty;
+    els.standingsClear.disabled = empty;
+  }
+
+  async function handleClearStandings() {
+    const ok = await confirmDialog({
+      title: 'Clear standings?',
+      message: 'This deletes every recorded game result. The current game is not affected.',
+      confirmText: 'Clear',
+    });
+    if (!ok) return;
+    app.results = [];
+    save();
+    renderStandings();
+  }
+
+  /* ---------- 7. Actions ---------- */
   function handlePoint(team) {
     const s = app.state;
     if (s.winner !== null) return;
@@ -291,6 +365,8 @@
 
   function handleUndo() {
     if (!app.history.length) return;
+    // Undoing the winning point also removes that game from the standings.
+    if (app.state.winner !== null) app.results.pop();
     app.state = app.history.pop();
     app.winDismissed = false;
     buzz();
@@ -338,7 +414,7 @@
     save();
   }
 
-  /* ---------- 7. Dialogs & toast ---------- */
+  /* ---------- 8. Dialogs & toast ---------- */
   function confirmDialog({ title, message, confirmText = 'Confirm' }) {
     return new Promise((resolve) => {
       els.confirmTitle.textContent = title;
@@ -370,13 +446,14 @@
     try { if (navigator.vibrate) navigator.vibrate(15); } catch (_) { /* ignore */ }
   }
 
-  /* ---------- 8. Storage ---------- */
+  /* ---------- 9. Storage ---------- */
   function save() {
     try {
       localStorage.setItem(CONFIG.storageKey, JSON.stringify({
         names: app.names,
         state: app.state,
         history: app.history,
+        results: app.results,
       }));
     } catch (_) { /* storage may be blocked; the app still works */ }
   }
@@ -391,6 +468,14 @@
       && (s.winner === null || s.winner === 0 || s.winner === 1);
   }
 
+  function validResult(r) {
+    return r
+      && Array.isArray(r.names) && r.names.length === 2 && r.names.every((n) => typeof n === 'string')
+      && Array.isArray(r.scores) && r.scores.length === 2
+      && r.scores.every((n) => Number.isInteger(n) && n >= 0)
+      && (r.winner === 0 || r.winner === 1);
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(CONFIG.storageKey);
@@ -399,6 +484,7 @@
       if (!validState(data.state)) return;
       app.state = data.state;
       app.history = Array.isArray(data.history) ? data.history.filter(validState) : [];
+      app.results = Array.isArray(data.results) ? data.results.filter(validResult) : [];
       if (Array.isArray(data.names) && data.names.length === 2) {
         app.names = data.names.map((n) => (typeof n === 'string' ? n : ''));
       }
@@ -406,7 +492,7 @@
     } catch (_) { /* ignore corrupt data */ }
   }
 
-  /* ---------- 9. Events & init ---------- */
+  /* ---------- 10. Events & init ---------- */
   els.teams.addEventListener('click', (e) => {
     const point = e.target.closest('.point-btn');
     if (point) return handlePoint(Number(point.dataset.team));
@@ -435,6 +521,7 @@
   els.sideOut.addEventListener('click', handleSideOut);
   els.undo.addEventListener('click', handleUndo);
   els.reset.addEventListener('click', handleReset);
+  els.standingsClear.addEventListener('click', handleClearStandings);
 
   els.winUndo.addEventListener('click', handleUndo);
   els.winNew.addEventListener('click', () => startNewGame());
